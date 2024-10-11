@@ -11,18 +11,20 @@ import Order from "@/core/order/Order";
 const router = useRouter();
 const store = useAuthStore();
 const mobileMenuOpen = ref(false);
-const orderNumber = ref(Math.floor(Math.random() * 100000));
-const dateOrder = ref(new Date().toISOString())
-const userId = ref('')
 const cartStore = useCartStore()
-const items = ref(cartStore.cartItems)
-const deliveryType = ref('')
 const showModal = ref(false)
 const authStore = useAuthStore()
-const orderStatus = ref('')
+const orderId = ref(null)
+const orderNumber = ref(Math.floor(Math.random() * 100000))
+const orderTypeCode = ref('')
+const userId = ref(authStore.user.id)
 const paymentId = ref('')
-const orderTypeCode = ref('T')
-const paymentType = ref('L')
+const orderStatus = ref('Pending')
+const orderDetailId = ref(null)
+const productId = ref(cartStore.cartItems.map(item => item.id))
+/* const productId = ref(cartStore.cartItems['1']) */
+const productQuantity = ref('1')
+const dateOrder = ref(new Date().toISOString())
 
 const modificarLogin = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
@@ -71,16 +73,16 @@ const closeCart = () => {
 
 const sendCart = async () => {
   const order = new Order(
-    cartStore.cartItems,
-    authStore.user.id,
-    dateOrder.value,
-    cartStore.totalAmount,
-    paymentType.value,
-    deliveryType.value,
+    orderId.value,
     orderNumber.value,
-    orderStatus.value,
+    orderTypeCode.value,
+    userId.value,
     paymentId.value,
-    orderTypeCode.value
+    orderStatus.value,
+    orderDetailId.value,
+    productId.value,
+    productQuantity.value,
+    dateOrder.value
   )
   const orderService = new OrderService()
   console.log('Carrito enviado:', cartStore.cartItems)
@@ -151,26 +153,26 @@ const increaseQuantity = (item) => {
     <div class="cart-container" @click.stop>
       <div class="cart-header">
         <h1>Carrito</h1>
-        <div class="cart-count">{{ items.length }}</div>
+        <div class="cart-count">{{ productId.length }}</div>
       </div>
       <div class="cart-items">
-        <div class="cart-item" v-for="item in items" :key="item.name">
-          <img :src="item.image" alt="Product image" class="item-image" />
+        <div class="cart-item" v-for="productId in productId" :key="productId.name">
+          <img :src="productId.image" alt="Product image" class="item-image" />
           <div class="item-details">
-            <h2 class="item-name">{{ item.name }}</h2>
-            <p>{{ item.description }}</p>
+            <h2 class="item-name">{{ productId.name }}</h2>
+            <p>{{ productId.description }}</p>
           </div>
           <div class="item-quantity">
-            <button @click="decreaseQuantity(item)" class="quantity-button">
+            <button @click="decreaseQuantity(productId)" class="quantity-button">
               -
             </button>
             <span>{{ item.quantity }}</span>
-            <button @click="increaseQuantity(item)" class="quantity-button">
+            <button @click="increaseQuantity(productId)" class="quantity-button">
               +
             </button>
           </div>
           <div class="item-price">
-            {{ (item.price * item.quantity).toFixed(2) }}
+            {{ (productId.price * productId.quantity).toFixed(2) }}
           </div>
         </div>
       </div>

@@ -23,13 +23,9 @@ const closeModal = () => {
 
 const fetchPizzas = async () => {
   try {
-    const response = await axios.get("http://localhost:8080/api/v1/products/type/PIZZA", {
-      headers: {
-        'Authorization': 'Basic YWRtaW46cGFzc3dvcmQ=', 
-        'Content-Type': 'application/json' 
-      }
-    });
-    pizzas.value = response.data; 
+    const response = await axios.get("http://localhost:8080/api/v1/products/type/PIZZA")
+    pizzas.value = await response.data
+    return pizzas.value
   } catch (error) {
     console.error("Error al cargar las pizzas:", error);
   }
