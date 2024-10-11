@@ -13,13 +13,16 @@ const store = useAuthStore();
 const mobileMenuOpen = ref(false);
 const orderNumber = ref(Math.floor(Math.random() * 100000));
 const dateOrder = ref(new Date().toISOString())
-const userId = ref("");
+const userId = ref('')
 const cartStore = useCartStore()
 const items = ref(cartStore.cartItems)
-const deliveryType = ref('L')
-const paymentType = ref('E')
+const deliveryType = ref('')
 const showModal = ref(false)
 const authStore = useAuthStore()
+const orderStatus = ref('')
+const paymentId = ref('')
+const orderTypeCode = ref('T')
+const paymentType = ref('L')
 
 const modificarLogin = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
@@ -53,12 +56,6 @@ const openModal = () => {
   showModal.value = true;
 };
 
-const increaseQuantity = (item) => {
-  if (item.quantity < 99) {
-    item.quantity++;
-  }
-};
-
 const closeModal = () => {
   showModal.value = false;
 };
@@ -75,16 +72,25 @@ const closeCart = () => {
 const sendCart = async () => {
   const order = new Order(
     cartStore.cartItems,
-    store.user.id,
+    authStore.user.id,
     dateOrder.value,
-    totalAmount.value,
+    cartStore.totalAmount,
     paymentType.value,
-    deliveryType.value
+    deliveryType.value,
+    orderNumber.value,
+    orderStatus.value,
+    paymentId.value,
+    orderTypeCode.value
   )
   const orderService = new OrderService()
   console.log('Carrito enviado:', cartStore.cartItems)
   console.log('Tipo de Entrega:', deliveryType.value)
   console.log('Tipo de Pago:', paymentType.value)
+  console.log('Fecha de Orden:', dateOrder.value)
+  console.log('Número de Pedido:', orderNumber.value)
+  console.log('Estado de Pedido:', orderStatus.value)
+  console.log('ID de Pago:', paymentId.value)
+  console.log('Código de Tipo de Pedido:', orderTypeCode.value)
   try {
     const response = await orderService.createOrder(order)
     console.log('Orden enviada:', response)
@@ -105,6 +111,10 @@ const decreaseQuantity = (item) => {
   } else {
     cartStore.removeFromCart(item.name)
   }
+}
+
+const increaseQuantity = (item) => {
+  item.quantity++
 }
 
 </script>
@@ -165,6 +175,32 @@ const decreaseQuantity = (item) => {
         </div>
       </div>
       <div class="cart-summary">
+        <div class="summary-row">
+          <p>Número de Pedido</p>
+          <p>{{ orderNumber }}</p>
+        </div>
+        <div class="summary-row">
+          <p>Tipo de Pago</p>
+          <p>{{ paymentType }}</p>
+          <select v-model="paymentType">
+            <option value="E">Efectivo</option>
+            <option value="T">Tarjeta</option>
+          </select>
+        </div>
+        <div class="summary-row">
+          <p>Tipo de Entrega</p>
+          <p>{{ deliveryType }}</p>
+          <select v-model="deliveryType">
+            <option value="L">Local</option>
+            <option value="D">Delivery</option>
+            <option value="P">Para llevar</option>
+          </select>
+        </div>
+        <div class="summary-row total">
+          <p>Fecha del Pedido</p>
+          <p>{{ dateOrder }}</p>
+        </div>
+      <div class="cart-summary">
         <div class="summary-row total">
           <p>Total:</p>
           <p>{{ totalAmount }} €</p>
@@ -176,6 +212,7 @@ const decreaseQuantity = (item) => {
       </button>
     </div>
   </div>
+</div>
 
   <ModalLogin :show="showModal" @close="closeModal" />
 </template>
