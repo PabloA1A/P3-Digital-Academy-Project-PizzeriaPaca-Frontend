@@ -1,14 +1,14 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
-import MenuCarta from "../MenuCarta.vue";
-import Titulo from "../Titulo.vue";
-import NavBar from "../NavBar.vue";
+import MenuCartaLogueado from "../MenuCartaLogueado.vue";
+import TituloLogueado from "../TituloLogueado.vue";
+import NavBarLogueado from "../NavBarLogueado.vue";
 import { useCartStore } from "@/stores/cart";
 
 const modalVisible = ref(false);
 const fullDescription = ref("");
-const cartStore = useCartStore()
+const cartStore = useCartStore();
 
 const openModal = (description) => {
   fullDescription.value = description;
@@ -44,13 +44,14 @@ const addPizzaToCart = (pizzaName, price, id) => {
   cartStore.addToCart({ name: pizzaName, price, id});
 };
 
-const pizzas = ref([])
+const pizzas = ref([]);
 </script>
 
 <template>
-  <Titulo></Titulo>
-  <NavBar />
-  <MenuCarta />
+  <TituloLogueado></TituloLogueado>
+  <NavBarLogueado></NavBarLogueado>
+
+  <MenuCartaLogueado></MenuCartaLogueado>
   <main>
     <div class="cards-container">
       <div v-for="(pizza, index) in pizzas" :key="pizza.id" class="card">
@@ -76,7 +77,6 @@ const pizzas = ref([])
             </div>
             <div class="containerPrecioCarrito">
               <div class="contPrecio">{{ pizza.price }}€</div>
-              <!-- <div class="contPrecio">{{ pizza.price }}€  - {{ pizza.id }}</div> -->
               <div class="contCarrito">
                 <img
                   class="imgCarro"
@@ -114,8 +114,8 @@ main {
   margin-top: 30px;
   margin-bottom: 50px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 columnas */
-  gap: 40px; /* Espacio entre las cards */
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 40px; 
   padding: 20px;
 }
 
@@ -169,8 +169,7 @@ main {
   transition: 1s;
   border: 1px solid rgb(182, 124, 1);
 }
-
-.full-description{
+.full-description {
   font-size: 20px;
 }
 
@@ -327,9 +326,6 @@ p {
     height: 390px;
     width: 270px;
   }
-  .full-description{
-    font-size: 10px;
-  }
   .card:hover .imagen_personaje {
     transform: translatey(-17px);
   }
@@ -338,6 +334,10 @@ p {
     height: 390px;
     width: 270px;
   }
+
+  .full-description {
+  font-size: 10px;
+}
 
   .imagen_personaje {
     height: 125px;

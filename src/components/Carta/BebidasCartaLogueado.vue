@@ -1,14 +1,14 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
-import MenuCarta from "../MenuCarta.vue";
-import Titulo from "../Titulo.vue";
-import NavBar from "../NavBar.vue";
-import { useCartStore } from "@/stores/cart";
+import MenuCartaLogueado from "../MenuCartaLogueado.vue";
+import { useCartStore } from "../../stores/cart";
+import TituloLogueado from "../TituloLogueado.vue";
+import NavBarLogueado from "../NavBarLogueado.vue";
 
 const modalVisible = ref(false);
 const fullDescription = ref("");
-const cartStore = useCartStore()
+const cartStore = useCartStore();
 
 const openModal = (description) => {
   fullDescription.value = description;
@@ -19,10 +19,10 @@ const closeModal = () => {
   modalVisible.value = false;
 };
 
-const fetchPizzas = async () => {
+const fetchBebidas = async () => {
   try {
     const response = await axios.get(
-      "http://localhost:8080/api/v1/products/type/PIZZA",
+      "http://localhost:8080/api/v1/products/type/BEBIDA",
       {
         headers: {
           Authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
@@ -30,59 +30,57 @@ const fetchPizzas = async () => {
         },
       }
     );
-    pizzas.value = response.data;
+    bebidas.value = response.data;
   } catch (error) {
-    console.error("Error al cargar las pizzas:", error);
+    console.error("Error al cargar las bebidas:", error);
   }
 };
 
 onMounted(() => {
-  fetchPizzas();
+  fetchBebidas();
 });
 
-const addPizzaToCart = (pizzaName, price, id) => {
-  cartStore.addToCart({ name: pizzaName, price, id});
+const addBebidaToCart = (bebidaName, price, id) => {
+  cartStore.addToCart({ name: bebidaName, price, id });
 };
-
-const pizzas = ref([])
+const bebidas = ref([]);
 </script>
 
 <template>
-  <Titulo></Titulo>
-  <NavBar />
-  <MenuCarta />
+  <TituloLogueado></TituloLogueado>
+  <NavBarLogueado></NavBarLogueado>
+  <MenuCartaLogueado></MenuCartaLogueado>
   <main>
     <div class="cards-container">
-      <div v-for="(pizza, index) in pizzas" :key="pizza.id" class="card">
+      <div v-for="(bebida, index) in bebidas" :key="bebida.id" class="card">
         <div class="personaje">
           <div class="imagen_personaje"><img class="imagen_personaje"
-              :src="pizza.image" 
-              :alt="pizza.name"
+              :src="bebida.image" 
+              :alt="bebida.name"
             /></div>
           <div class="detalle">
             <div class="contTitulo">
-              <h2>{{ pizza.name }}</h2>
+              <h2>{{ bebida.name }}</h2>
             </div>
             <div class="contTexto">
               <p>
-                {{ pizza.description.slice(0, 120) }}
-                {{ pizza.description.length > 120 ? "..." : "" }}
+                {{ bebida.description.slice(0, 120) }}
+                {{ bebida.description.length > 120 ? "..." : "" }}
               </p>
             </div>
             <div class="contBtn">
-              <div class="btn" @click="openModal(pizza.description)">
+              <div class="btn" @click="openModal(bebida.description)">
                 Leer Más
               </div>
             </div>
             <div class="containerPrecioCarrito">
-              <div class="contPrecio">{{ pizza.price }}€</div>
-              <!-- <div class="contPrecio">{{ pizza.price }}€  - {{ pizza.id }}</div> -->
+              <div class="contPrecio">{{ bebida.price }}€</div>
               <div class="contCarrito">
                 <img
                   class="imgCarro"
                   src="../../assets/img/carta/carro.png"
                   alt="Carrito"
-                  @click="addPizzaToCart(pizza.name, pizza.price, pizza.id)"
+                  @click="addBebidaToCart(bebida.name, bebida.price, bebida.id)"
                 />
               </div>
             </div>
@@ -114,8 +112,8 @@ main {
   margin-top: 30px;
   margin-bottom: 50px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 columnas */
-  gap: 40px; /* Espacio entre las cards */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
   padding: 20px;
 }
 
@@ -144,9 +142,9 @@ main {
 .imagen_personaje {
   height: 160px;
   width: 85%;
-  margin-top: -20px;
   display: flex;
   justify-content: center;
+  margin-top: -20px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -170,10 +168,9 @@ main {
   border: 1px solid rgb(182, 124, 1);
 }
 
-.full-description{
+.full-description {
   font-size: 20px;
 }
-
 .card:hover {
   transform: scale(1.1);
 }
@@ -305,7 +302,6 @@ p {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
-
   .card {
     height: 390px;
     width: 350px;

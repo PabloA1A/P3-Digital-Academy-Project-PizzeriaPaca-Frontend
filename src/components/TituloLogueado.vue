@@ -1,30 +1,43 @@
 <script setup>
 import { ref, computed } from "vue";
+import axios from "axios";
 import ModalLogin from "./ModalLogin.vue";
-import { RouterLink, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { loginChange } from "../stores/loginChange";
-import { useCartStore } from '@/stores/cart';
+import { useCartStore } from "@/stores/cart";
 import OrderService from "@/core/order/OrderService";
-import Order from "@/core/order/Order";
+import { orderDto }  from "@/core/order/OrderDto";
 
+const orderNumber = ref(Math.floor(Math.random() * 100000));
+const paymentType = ref("");
+const dateOrder = ref(new Date().toISOString());
+const userId = ref("");
 const router = useRouter();
 const store = useAuthStore();
 const mobileMenuOpen = ref(false);
-const cartStore = useCartStore()
-const showModal = ref(false)
-const authStore = useAuthStore()
-const orderId = ref(null)
-const orderNumber = ref(Math.floor(Math.random() * 100000))
-const orderTypeCode = ref('')
-const userId = ref(authStore.user.id)
-const paymentId = ref('')
-const orderStatus = ref('Pending')
-const orderDetailId = ref(null)
-const productId = ref(cartStore.cartItems.map(item => item.id))
-/* const productId = ref(cartStore.cartItems['1']) */
-const productQuantity = ref('1')
-const dateOrder = ref(new Date().toISOString())
+const cartStore = useCartStore();
+const deliveryType = ref("");
+const orderTypeCode = ref('');
+const orderStatus=ref('PENDING');
+
+//obtiene datos del local storage
+const loggeadoUser = localStorage.getItem("username");
+const IdUserLogged = localStorage.getItem("id");
+
+// Verificar si es null o no es una cadena válida
+if (!IdUserLogged || typeof IdUserLogged !== "string" || IdUserLogged.trim() === "") {
+  IdUserLogged = "1"; // Asignar valor '1' si está vacío o es nulo
+}
+
+console.log("valor de user id>>>" + IdUserLogged);
+
+const totalAmount = computed(() => {
+  return cartStore.cartItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+});
 
 const modificarLogin = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
@@ -36,7 +49,7 @@ const modificarRegister = () => {
   else loginChange.setRegister(false);
 };
 
-function logout() {
+const logout = () => {
   store.user.isAuthenticated = false;
   store.user.id = "";
   store.user.username = "";
@@ -47,9 +60,11 @@ function logout() {
   loginChange.setRegister(false);
   mobileMenuOpen.value = false;
 
-  const redirectPath = "/home";
+  //const redirectPath = "/home";
+  const redirectPath = "/";
+
   router.push(redirectPath);
-}
+};
 
 const openModal = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
@@ -57,6 +72,22 @@ const openModal = () => {
 
   showModal.value = true;
 };
+
+const increaseQuantity = (item) => {
+  if (item.quantity < 99) {
+    item.quantity++;
+  }
+};
+
+const decreaseQuantity = (item) => {
+  if (item.quantity > 0) {
+    item.quantity--
+  } else {
+    cartStore.removeFromCart(item.name)
+  }
+};
+
+const showModal = ref(false);
 
 const closeModal = () => {
   showModal.value = false;
@@ -71,54 +102,69 @@ const closeCart = () => {
   showCart.value = false;
 };
 
+if (store.user.isAuthenticated) {
+  userId.value = store.user.id;
+}
+
 const sendCart = async () => {
-  const order = new Order(
-    orderId.value,
-    orderNumber.value,
-    orderTypeCode.value,
-    userId.value,
-    paymentId.value,
-    orderStatus.value,
-    orderDetailId.value,
-    productId.value,
-    productQuantity.value,
-    dateOrder.value
+  // Verificar si el carrito está vacío
+  if (cartStore.cartItems.length === 0) {
+    alert("El carrito está vacío. Por favor, agregue productos antes de pagar.");
+    return; // No continuar con el proceso de pago
+  }
+
+  // Verificar si el tipo de pago está vacío
+  if (!paymentType.value) {
+    alert("Por favor, seleccione un tipo de pago.");
+    return; // No continuar con el proceso de pago
+  }
+
+  // Verificar si el tipo de entrega está vacío
+  if (!orderTypeCode.value) {
+    alert("Por favor, seleccione un tipo de entrega.");
+    return; // No continuar con el proceso de pago
+  }
+
+   // Crea un array de productos basado en los items del carrito
+  const products = cartStore.cartItems.map(item => ({
+    productId: item.id, // Asegúrate de que el producto tenga un ID único
+    productQuantity: item.quantity, // Cantidad de este producto en el carrito
+    productPrice: item.price // Precio del producto
+  }));
+
+  const orderDto = {
+    orderNumber : orderNumber.value,
+    orderTypeCode : orderTypeCode.value,
+    userId : IdUserLogged, //store.user.id,    
+    paymentId: paymentType.value,
+    orderStatus: orderStatus.value,
+    dateOrder: dateOrder.value,
+    totalPaid: totalAmount.value, // Monto total
+    products // Lista de productos en el carrito
+  }
+
+  console.log("datos enviados ===>> " + 
+    orderNumber.value + " " +
+    orderTypeCode.value + " " +
+    store.user.id + " " +
+    paymentType.value + " " +
+    orderStatus.value + " " +
+    dateOrder.value + " " +
+    totalAmount.value
   )
-  const orderService = new OrderService()
-  console.log('Carrito enviado:', cartStore.cartItems)
-  console.log('Tipo de Entrega:', deliveryType.value)
-  console.log('Tipo de Pago:', paymentType.value)
-  console.log('Fecha de Orden:', dateOrder.value)
-  console.log('Número de Pedido:', orderNumber.value)
-  console.log('Estado de Pedido:', orderStatus.value)
-  console.log('ID de Pago:', paymentId.value)
-  console.log('Código de Tipo de Pedido:', orderTypeCode.value)
+
+  const orderService = new OrderService();
+  console.log("Carrito enviado:", cartStore.cartItems);
   try {
-    const response = await orderService.createOrder(order)
-    console.log('Orden enviada:', response)
-    alert("Orden enviada con éxito!")
+    const response = await orderService.createOrder(orderDto);
+    console.log("Orden enviada:", response);
+    cartStore.clearCart();
+    alert("Orden enviada con éxito!");    
   } catch (error) {
-    console.error('Error al enviar la orden:', error)
-    alert("Error al enviar la orden")
+    console.error("Error al enviar la orden:", error);
+    alert("Error al enviar la orden");
   }
-}
-
-const totalAmount = computed(() => {
-  return cartStore.totalAmount
-})
-
-const decreaseQuantity = (item) => {
-  if (item.quantity > 1) {
-    item.quantity--
-  } else {
-    cartStore.removeFromCart(item.name)
-  }
-}
-
-const increaseQuantity = (item) => {
-  item.quantity++
-}
-
+};
 </script>
 
 <template>
@@ -131,8 +177,9 @@ const increaseQuantity = (item) => {
     </div>
 
     <div id="containerLogin">
-      <div id="login" @click="openModal">
-        <h2 class="info">Hola</h2>
+      <!-- <div id="login" @click="openModal"> -->
+        <div id="login">
+        <h2 class="info">Hola {{loggeadoUser}}</h2>
       </div>
       <div id="carrito" @click="toggleCart">
         <img
@@ -141,11 +188,14 @@ const increaseQuantity = (item) => {
           alt="carrito"
         />
       </div>
+<!--       <div id="login" @click="openModal">
+        <img class="user" src="../assets/img/navbar/user.png" alt="user" />
+      </div> -->
       <div class="logout">
         <RouterLink to="/"
-          ><img class="icnLogOut" src="../assets/img/navbar/logout.png" alt=""
+          ><img class="icnLogOut" src="../assets/img/navbar/logout.png" alt="" @click="logout"
         /></RouterLink>
-      </div>
+      </div>      
     </div>
   </div>
 
@@ -153,14 +203,15 @@ const increaseQuantity = (item) => {
     <div class="cart-container" @click.stop>
       <div class="cart-header">
         <h1>Carrito</h1>
-        <div class="cart-count">{{ productId.length }}</div>
+        <div class="cart-count">{{ cartStore.cartItems.length }}</div>
       </div>
       <div class="cart-items">
-        <div class="cart-item" v-for="productId in productId" :key="productId.name">
-          <img :src="productId.image" alt="Product image" class="item-image" />
+        <div class="cart-item" v-for="item in cartStore.cartItems" :key="item.name" :productId="item.id">
+          <img :src="item.image" alt="Product image" class="item-image" />
           <div class="item-details">
-            <h2 class="item-name">{{ productId.name }}</h2>
-            <p>{{ productId.description }}</p>
+            <h2 class="item-name">{{ item.name }}</h2>
+            <!-- <h2 class="item-name">{{ item.name }} - {{ item.id }}</h2> -->
+            <p>{{ item.description }}</p>
           </div>
           <div class="item-quantity">
             <button @click="decreaseQuantity(productId)" class="quantity-button">
@@ -176,53 +227,79 @@ const increaseQuantity = (item) => {
           </div>
         </div>
       </div>
+
       <div class="cart-summary">
         <div class="summary-row">
-          <p>Número de Pedido</p>
-          <p>{{ orderNumber }}</p>
+          <p>Número de Pedido   <<  {{ orderNumber }}  >></p>
         </div>
-        <div class="summary-row">
-          <p>Tipo de Pago</p>
-          <p>{{ paymentType }}</p>
-          <select v-model="paymentType">
+        <div class="summary-row">          
+          <label for="paymentType">Tipo de pago  : &nbsp;</label>          
+          <select v-model="paymentType" id="paymentType">
             <option value="E">Efectivo</option>
             <option value="T">Tarjeta</option>
           </select>
+          <p hidden>{{ paymentType }}</p>
         </div>
+        <br>
         <div class="summary-row">
-          <p>Tipo de Entrega</p>
-          <p>{{ deliveryType }}</p>
-          <select v-model="deliveryType">
+          <label for="orderTypeCode">Tipo de entrega : </label>
+          <select v-model="orderTypeCode" id="orderTypeCode">
             <option value="L">Local</option>
             <option value="D">Delivery</option>
             <option value="P">Para llevar</option>
           </select>
+          <p hidden>{{ orderTypeCode }}</p>
         </div>
         <div class="summary-row total">
           <p>Fecha del Pedido</p>
           <p>{{ dateOrder }}</p>
         </div>
-      <div class="cart-summary">
-        <div class="summary-row total">
-          <p>Total:</p>
-          <p>{{ totalAmount }} €</p>
+        <div class="cart-summary">
+          <div class="summary-row">
+            <span>Total : &nbsp;</span>
+            <span>{{ totalAmount }}</span>
+          </div>
+          <button class="payment-button" @click="sendCart" cartStore.clearCart>
+            Pagar            
+            <span class="payment-icon">💳</span>
+          </button>
         </div>
       </div>
-      <button class="payment-button" @click="sendCart">
-        Realizar Pago
-        <span class="payment-icon">💳</span>
-      </button>
     </div>
   </div>
-</div>
 
-  <ModalLogin :show="showModal" @close="closeModal" />
+  <!-- Overlay para el modal de inicio de sesión -->
+  <div v-if="showModal" class="modal-overlay" @click="closeModal">
+    <div class="modal-content" @click.stop>
+      <ModalLogin :show="showModal" @close="closeModal" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
 #containerTitulo {
   width: 100%;
   height: 130px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white; /* Fondo del modal */
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 #containerLogoTitulo {
@@ -233,15 +310,24 @@ const increaseQuantity = (item) => {
   justify-content: center;
   align-items: center;
 }
+
 .info {
   color: white;
 }
+
 #logo {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 40%;
   height: 130px;
+}
+
+.logout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20%;
 }
 
 .img {
@@ -260,35 +346,23 @@ const increaseQuantity = (item) => {
 }
 
 #containerLogin {
-  width: 25%;
+  width: 15%;
   height: 130px;
   float: right;
   display: flex;
   justify-content: space-between;
 }
 
-#carrito {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 25%;
-  height: 100%;
-  cursor: pointer;
-}
+#carrito,
 #login {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 50%;
   height: 100%;
+  cursor: pointer;
 }
-.logout {
-  width: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 25%;
-}
+
 .imgCarrito,
 .user,
 .icnLogOut {
@@ -296,6 +370,7 @@ const increaseQuantity = (item) => {
   height: 50px;
   transition: transform 0.5s ease;
 }
+
 .icnLogOut {
   cursor: pointer;
 }
@@ -332,7 +407,7 @@ const increaseQuantity = (item) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: bold;
 }
 
@@ -340,11 +415,12 @@ const increaseQuantity = (item) => {
   background-color: rgb(182, 124, 1);
   color: #000;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: flex;
   justify-content: center;
   align-items: center;
+  font-size: 16px;
 }
 
 .cart-items {
@@ -357,9 +433,10 @@ const increaseQuantity = (item) => {
   align-items: center;
   background-color: #2e2e2e;
   border-radius: 15px;
-  padding: 10px;
+  padding: 8px;
   margin-bottom: 10px;
   color: white;
+  font-size: 14px;
 }
 
 .item-image {
@@ -367,12 +444,14 @@ const increaseQuantity = (item) => {
   height: 50px;
   border-radius: 50%;
 }
+
 .item-name {
-  font-size: x-large;
+  font-size: 16px;
 }
+
 .item-details {
   flex: 1;
-  margin-left: 10px;
+  margin-left: 5px;
   display: flex;
   flex-direction: column;
 }
@@ -380,48 +459,51 @@ const increaseQuantity = (item) => {
 .item-quantity {
   display: flex;
   align-items: center;
+  font-size: 14px;
 }
 
 .quantity-button {
   background-color: rgb(182, 124, 1);
   border: none;
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
   font-size: 18px;
   font-weight: bold;
   text-align: center;
   cursor: pointer;
   margin: 0 5px;
+  font-size: 16px;
 }
 
 .item-price {
-  font-size: 18px;
-  flex-shrink: 0; /* Evita que se encoja */
+  font-size: 16px;
+  flex-shrink: 0;
   white-space: nowrap;
-  margin-top: 5px;
+  margin-top: 0px;
 }
 
 .cart-summary {
   margin-top: 20px;
   background-color: rgb(182, 124, 1);
   border-radius: 15px;
-  padding: 20px;
+  padding: 15px;
+  font-size: 16px;
 }
 
 .summary-row {
   font-weight: bolder;
   color: white;
-  font-size: x-large;
+  font-size: 18px;
 }
 
 .payment-button {
   margin-top: 20px;
   width: 100%;
-  padding: 15px;
+  padding: 15px;/* Aumentar el padding */
   background-color: #000;
   color: #fff;
   border-radius: 30px;
-  font-size: 18px;
+  font-size: 20px; /* Aumentar el tamaño del texto */
   font-weight: bold;
   display: flex;
   justify-content: center;
@@ -432,6 +514,7 @@ const increaseQuantity = (item) => {
 
 .payment-icon {
   margin-left: 10px;
+  font-size: 25px; /* Aumentar el tamaño del icono */
 }
 
 @media (min-width: 481px) and (max-width: 1024px) {
@@ -444,7 +527,7 @@ const increaseQuantity = (item) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 30%;
+    width: 40%;
     height: 130px;
   }
 
@@ -452,11 +535,21 @@ const increaseQuantity = (item) => {
     width: 60%;
     visibility: hidden;
   }
+
   #containerLogin {
-    width: 40%;
+    width: 20%;
     margin-right: 20px;
   }
+
+  #login {
+    width: 70%;
+  }
+
+  .logout {
+    width: 30%;
+  }
 }
+
 @media (max-width: 480px) {
   #containerLogoTitulo {
     width: 35%;
@@ -465,26 +558,46 @@ const increaseQuantity = (item) => {
   #logo {
     width: 35%;
   }
+
   .img {
     width: 100px;
     height: 100px;
   }
-  .info {
-    font-size: 15px;
-  }
+
   #titulo {
     width: 60%;
     display: none;
   }
+
   #containerLogin {
-    width: 50%;
+/*     width: 30%;
+    margin-right: 20px; */
+    width: 40%;
   }
+
   .imgCarrito,
   .user,
   .icnLogOut {
     width: 30px;
     height: 30px;
     transition: transform 0.5s ease;
+  }
+
+  .info {
+    font-size: 15px;
+  }
+  
+  #login {
+    width: 70%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .logout {
+    width: 30%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 }
 </style>

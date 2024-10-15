@@ -27,17 +27,17 @@ const startVoiceRecognition = () => {
 
     
     if (speechResult.includes("inicio")) {
-      router.push("/");
+      router.push("/homelogueado");
     } else if (speechResult.includes("carta")) {
-      router.push("/carta");
+      router.push("/cartalogueado");
     } else if (speechResult.includes("promo")) {
-      router.push("/promos");
+      router.push("/promoslogueado");
     } else if (speechResult.includes("pizzas")) {
-      router.push("/pizzas");
+      router.push("/pizzaslogueado");
     } else if (speechResult.includes("postres")) {
-      router.push("/postres");
+      router.push("/postreslogueado");
     } else if (speechResult.includes("bebidas")) {
-      router.push("/bebidas");
+      router.push("/bebidaslogueado");
     } else {
       alert(
         'Comando no reconocido. Intenta decir "Inicio", "Carta", "Promos", "Pizzas", "Postres" o "Bebidas".'
@@ -65,16 +65,16 @@ onMounted(() => {
 </script>
 <template>
   <ul>
-    <RouterLink to="/" class="RouterLink"><li>Home</li></RouterLink>
-    <RouterLink to="/carta" class="RouterLink"><li>Carta</li></RouterLink>
-    <RouterLink to="/promos" class="RouterLink"><li>Promos</li></RouterLink>
+    <RouterLink to="/homelogueado" class="RouterLink"><li>Home</li></RouterLink>
+    <RouterLink to="/cartalogueado" class="RouterLink"><li>Carta</li></RouterLink>
+    <RouterLink to="/promoslogueado" class="RouterLink"><li>Promos</li></RouterLink>
   </ul>
   <div class="containerMicro">
     <img
       class="micro"
       :class="{ active: isListening }"
       src="../assets/img/micro/micro.png"
-      alt="MicrófonoZZZZZZ"
+      alt="Micrófono"
       @click="isListening ? stopVoiceRecognition() : startVoiceRecognition()"
     />
   </div>

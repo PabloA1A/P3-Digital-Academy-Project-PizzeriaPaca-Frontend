@@ -5,18 +5,32 @@ import ModalLogin from "./ModalLogin.vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import { loginChange } from "../stores/loginChange";
-import { useCartStore } from '@/stores/cart';
+import { useCartStore } from "@/stores/cart";
 import OrderService from "@/core/order/OrderService";
-import Order from "@/core/order/Order";
+import { orderDto } from "@/core/order/OrderDto";
 
 const orderNumber = ref(Math.floor(Math.random() * 100000));
-const paymentType = ref("cash");
-const dateOrder = ref(new Date().toISOString())
+const paymentType = ref("");
+const dateOrder = ref(new Date().toISOString());
 const userId = ref("");
 const router = useRouter();
 const store = useAuthStore();
 const mobileMenuOpen = ref(false);
-const cartStore = useCartStore()
+const cartStore = useCartStore();
+const deliveryType = ref("");
+const orderTypeCode = ref("");
+const orderStatus = ref("PENDING");
+
+//obtiene datos del local storage
+const loggeadoUser = localStorage.getItem("username");
+let IdUserLogged = localStorage.getItem("id");
+
+// Verificar si es null o no es una cadena válida
+if (!IdUserLogged || typeof IdUserLogged !== "string" || IdUserLogged.trim() === "") {
+  IdUserLogged = "1"; // Asignar valor '1' si está vacío o es nulo
+}
+
+console.log("valor de user id>>>" + IdUserLogged);
 
 const totalAmount = computed(() => {
   return cartStore.cartItems.reduce(
@@ -35,25 +49,27 @@ const modificarRegister = () => {
   else loginChange.setRegister(false);
 };
 
-function logout() {
+const logout = () => {
   store.user.isAuthenticated = false;
   store.user.id = "";
   store.user.username = "";
   store.user.role = "";
-  
+
   localStorage.clear();
   loginChange.setLogin(false);
   loginChange.setRegister(false);
   mobileMenuOpen.value = false;
-  
-  const redirectPath = "/home";
+
+  //const redirectPath = "/home";
+  const redirectPath = "/";
+
   router.push(redirectPath);
-}
+};
 
 const openModal = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
   else loginChange.setLogin(false);
-  
+
   showModal.value = true;
 };
 
@@ -64,8 +80,10 @@ const increaseQuantity = (item) => {
 };
 
 const decreaseQuantity = (item) => {
-  if (item.quantity > 1) {
+  if (item.quantity > 0) {
     item.quantity--;
+  } else {
+    cartStore.removeFromCart(item.name);
   }
 };
 
@@ -79,39 +97,83 @@ const showCart = ref(false);
 const toggleCart = () => {
   showCart.value = !showCart.value;
 };
-const closeCart = () => {
-  cartStore.cartItems = []
-};
 
+const closeCart = () => {
+  showCart.value = false;
+};
 if (store.user.isAuthenticated) {
   userId.value = store.user.id;
 }
 
 const sendCart = async () => {
-  const order = new Order(
-    cartStore.cartItems,
-    store.user.id,
-    dateOrder.value,
-    totalAmount.value,
-    paymentType.value,
-    deliveryType.value
-  );
-  const orderService = new OrderService()
-  console.log('Carrito enviado:', cartStore.cartItems)
-  try {
-    const response = await orderService.createOrder(order)
-    console.log('Orden enviada:', response)
-    alert("Orden enviada con éxito!")
-  } catch (error) {
-    console.error('Error al enviar la orden:', error)
-    alert("Error al enviar la orden")
+  // Verificar si el carrito está vacío
+  if (cartStore.cartItems.length === 0) {
+    alert("El carrito está vacío. Por favor, agregue productos antes de pagar.");
+    return; // No continuar con el proceso de pago
   }
-}
 
+  // Verificar si el tipo de pago está vacío
+  if (!paymentType.value) {
+    alert("Por favor, seleccione un tipo de pago.");
+    return; // No continuar con el proceso de pago
+  }
+
+  // Verificar si el tipo de entrega está vacío
+  if (!orderTypeCode.value) {
+    alert("Por favor, seleccione un tipo de entrega.");
+    return; // No continuar con el proceso de pago
+  }
+
+  // Crea un array de productos basado en los items del carrito
+  const products = cartStore.cartItems.map((item) => ({
+    productId: item.id, // Asegúrate de que el producto tenga un ID único
+    productQuantity: item.quantity, // Cantidad de este producto en el carrito
+    productPrice: item.price, // Precio del producto
+  }));
+
+  const orderDto = {
+    orderNumber: orderNumber.value,
+    orderTypeCode: orderTypeCode.value,
+    userId: IdUserLogged, //store.user.id,
+    paymentId: paymentType.value,
+    orderStatus: orderStatus.value,
+    dateOrder: dateOrder.value,
+    totalPaid: totalAmount.value, // Monto total
+    products, // Lista de productos en el carrito
+  };
+
+  console.log(
+    "datos enviados ===>> " +
+      orderNumber.value +
+      " " +
+      orderTypeCode.value +
+      " " +
+      store.user.id +
+      " " +
+      paymentType.value +
+      " " +
+      orderStatus.value +
+      " " +
+      dateOrder.value +
+      " " +
+      totalAmount.value
+  );
+
+  const orderService = new OrderService();
+  console.log("Carrito enviado:", cartStore.cartItems);
+  try {
+    const response = await orderService.createOrder(orderDto);
+    console.log("Orden enviada:", response);
+    cartStore.clearCart();
+    alert("Orden enviada con éxito!");    
+  } catch (error) {
+    console.error("Error al enviar la orden:", error);
+    alert("Error al enviar la orden");
+  }
+};
 </script>
 
 <template>
-
   <div id="containerTitulo">
     <div id="containerLogoTitulo">
       <div id="logo">
@@ -121,8 +183,12 @@ const sendCart = async () => {
     </div>
 
     <div id="containerLogin">
-      <div id="carrito" @click="toggleCart">
-        <img class="imgCarrito" src="../assets/img/navbar/carrito.png" alt="carrito" />
+       <div id="carrito" @click="toggleCart">
+        <img
+          class="imgCarrito"
+          src="../assets/img/navbar/carrito.png"
+          alt="carrito"
+        />
       </div>
       <div id="login" @click="openModal">
         <img class="user" src="../assets/img/navbar/user.png" alt="user" />
@@ -137,10 +203,16 @@ const sendCart = async () => {
         <div class="cart-count">{{ cartStore.cartItems.length }}</div>
       </div>
       <div class="cart-items">
-        <div class="cart-item" v-for="item in cartStore.cartItems" :key="item.name">
+        <div
+          class="cart-item"
+          v-for="item in cartStore.cartItems"
+          :key="item.name"
+          :productId="item.id"
+        >
           <img :src="item.image" alt="Product image" class="item-image" />
           <div class="item-details">
             <h2 class="item-name">{{ item.name }}</h2>
+            <!-- <h2 class="item-name">{{ item.name }} - {{ item.id }}</h2> -->
             <p>{{ item.description }}</p>
           </div>
           <div class="item-quantity">
@@ -157,35 +229,39 @@ const sendCart = async () => {
           </div>
         </div>
       </div>
+
       <div class="cart-summary">
         <div class="summary-row">
-          <p>Número de Pedido</p>
-          <p>{{ orderNumber }}</p>
+          <p>Número de Pedido   <<  {{ orderNumber }}  >></p>
         </div>
         <div class="summary-row">
-          <p>Tipo de Pago</p>
-          <p>{{ paymentType }}</p>
-          <select v-model="paymentType">
+          <label for="paymentType">Tipo de pago  :  &nbsp;</label>
+          <select v-model="paymentType" id="paymentType">
             <option value="E">Efectivo</option>
             <option value="T">Tarjeta</option>
           </select>
+          <p hidden>{{ paymentType }}</p>
         </div>
+        <br>
         <div class="summary-row">
-          <p>Tipo de Entrega</p>
-          <p>{{ deliveryType }}</p>
-          <select v-model="deliveryType">
+          <label for="orderTypeCode">Tipo de entrega :  </label>
+          <select v-model="orderTypeCode" id="orderTypeCode">
             <option value="L">Local</option>
-            <option value="D">Delivery</option>
+            <!-- <option value="D">Delivery</option> -->
             <option value="P">Para llevar</option>
+             <!-- Solo mostrar Delivery si IdUserLogged no es 1 -->
+            <option v-if="IdUserLogged !== '1'" value="D">Delivery</option>
           </select>
+          <p hidden>{{ orderTypeCode }}</p>
         </div>
+        <br>
         <div class="summary-row total">
           <p>Fecha del Pedido</p>
           <p>{{ dateOrder }}</p>
         </div>
         <div class="cart-summary">
           <div class="summary-row">
-            <span>Total:</span>
+            <span>Total : &nbsp;</span>
             <span>{{ totalAmount }}</span>
           </div>
           <button class="payment-button" @click="sendCart">
@@ -198,7 +274,6 @@ const sendCart = async () => {
   </div>
 
   <ModalLogin :show="showModal" @close="closeModal" />
-
 </template>
 
 <style scoped>
@@ -387,11 +462,11 @@ const sendCart = async () => {
 .payment-button {
   margin-top: 20px;
   width: 100%;
-  padding: 10px;
+  padding: 15px;/* Aumentar el padding */
   background-color: #000;
   color: #fff;
   border-radius: 30px;
-  font-size: 10px;
+  font-size: 20px; /* Aumentar el tamaño del texto */
   font-weight: bold;
   display: flex;
   justify-content: center;
@@ -402,7 +477,7 @@ const sendCart = async () => {
 
 .payment-icon {
   margin-left: 10px;
-  font-size: 16px;
+  font-size: 25px; /* Aumentar el tamaño del icono */
 }
 
 @media (min-width: 481px) and (max-width: 1024px) {

@@ -1,14 +1,14 @@
 <script setup>
-import Titulo from "@/components/Titulo.vue";
 import CardPromo1 from "@/components/Promos/CardPromo1.vue";
 import CardPromo2 from "@/components/Promos/CardPromo2.vue";
 import CardPromo3 from "@/components/Promos/CardPromo3.vue";
-import NavBar from "@/components/NavBar.vue";
+import TituloLogueado from "@/components/TituloLogueado.vue";
+import NavBarLogueado from "@/components/NavBarLogueado.vue";
 </script>
 
 <template>
-  <Titulo></Titulo>
-  <NavBar></NavBar>
+  <TituloLogueado></TituloLogueado>
+  <NavBarLogueado></NavBarLogueado>
   <div class="separadorprincipal"></div>
   <div class="main">
     <div class="separador"></div>

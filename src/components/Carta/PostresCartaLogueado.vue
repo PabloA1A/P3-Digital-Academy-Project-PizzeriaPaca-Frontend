@@ -1,14 +1,15 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
-import MenuCarta from "../MenuCarta.vue";
-import Titulo from "../Titulo.vue";
+import MenuCartaLogueado from "../MenuCartaLogueado.vue";
+import { useCartStore } from "../../stores/cart";
+import TituloLogueado from "../TituloLogueado.vue";
 import NavBar from "../NavBar.vue";
-import { useCartStore } from "@/stores/cart";
 
 const modalVisible = ref(false);
 const fullDescription = ref("");
-const cartStore = useCartStore()
+//const postres = ref([]);
+const cartStore = useCartStore();
 
 const openModal = (description) => {
   fullDescription.value = description;
@@ -19,10 +20,10 @@ const closeModal = () => {
   modalVisible.value = false;
 };
 
-const fetchPizzas = async () => {
+const fetchPostres = async () => {
   try {
     const response = await axios.get(
-      "http://localhost:8080/api/v1/products/type/PIZZA",
+      "http://localhost:8080/api/v1/products/type/POSTRE",
       {
         headers: {
           Authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
@@ -30,59 +31,58 @@ const fetchPizzas = async () => {
         },
       }
     );
-    pizzas.value = response.data;
+    postres.value = response.data;
   } catch (error) {
-    console.error("Error al cargar las pizzas:", error);
+    console.error("Error al cargar los postres:", error);
   }
 };
 
 onMounted(() => {
-  fetchPizzas();
+  fetchPostres();
 });
 
-const addPizzaToCart = (pizzaName, price, id) => {
-  cartStore.addToCart({ name: pizzaName, price, id});
-};
+const addPostreToCart = (postreName, price, id) => {
 
-const pizzas = ref([])
+  cartStore.addToCart({ name: postreName, price, id });
+};
+const postres = ref([]);
 </script>
 
 <template>
-  <Titulo></Titulo>
+  <TituloLogueado></TituloLogueado>
   <NavBar />
-  <MenuCarta />
+  <MenuCartaLogueado></MenuCartaLogueado>
   <main>
     <div class="cards-container">
-      <div v-for="(pizza, index) in pizzas" :key="pizza.id" class="card">
+      <div v-for="(postre, index) in postres" :key="postre.id" class="card">
         <div class="personaje">
           <div class="imagen_personaje"><img class="imagen_personaje"
-              :src="pizza.image" 
-              :alt="pizza.name"
+              :src="postre.image" 
+              :alt="postre.name"
             /></div>
           <div class="detalle">
             <div class="contTitulo">
-              <h2>{{ pizza.name }}</h2>
+              <h2>{{ postre.name }}</h2>
             </div>
             <div class="contTexto">
               <p>
-                {{ pizza.description.slice(0, 120) }}
-                {{ pizza.description.length > 120 ? "..." : "" }}
+                {{ postre.description.slice(0, 120) }}
+                {{ postre.description.length > 120 ? "..." : "" }}
               </p>
             </div>
             <div class="contBtn">
-              <div class="btn" @click="openModal(pizza.description)">
+              <div class="btn" @click="openModal(postre.description)">
                 Leer Más
               </div>
             </div>
             <div class="containerPrecioCarrito">
-              <div class="contPrecio">{{ pizza.price }}€</div>
-              <!-- <div class="contPrecio">{{ pizza.price }}€  - {{ pizza.id }}</div> -->
+              <div class="contPrecio">{{ postre.price }}€</div>
               <div class="contCarrito">
                 <img
                   class="imgCarro"
                   src="../../assets/img/carta/carro.png"
                   alt="Carrito"
-                  @click="addPizzaToCart(pizza.name, pizza.price, pizza.id)"
+                  @click="addPostreToCart(postre.name, postre.price, postre.id)"
                 />
               </div>
             </div>
@@ -114,8 +114,8 @@ main {
   margin-top: 30px;
   margin-bottom: 50px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 columnas */
-  gap: 40px; /* Espacio entre las cards */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
   padding: 20px;
 }
 
@@ -140,6 +140,11 @@ main {
   transition: 300ms;
   position: absolute;
 }
+
+.full-description{
+  font-size: 20px;
+}
+
 
 .imagen_personaje {
   height: 160px;
@@ -168,10 +173,6 @@ main {
   grid-template-rows: 1fr 1fr 1fr;
   transition: 1s;
   border: 1px solid rgb(182, 124, 1);
-}
-
-.full-description{
-  font-size: 20px;
 }
 
 .card:hover {
@@ -305,7 +306,6 @@ p {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
-
   .card {
     height: 390px;
     width: 350px;
@@ -327,9 +327,6 @@ p {
     height: 390px;
     width: 270px;
   }
-  .full-description{
-    font-size: 10px;
-  }
   .card:hover .imagen_personaje {
     transform: translatey(-17px);
   }
@@ -343,6 +340,9 @@ p {
     height: 125px;
     width: 90%;
   }
+  .full-description{
+  font-size: 10px;
+}
 
   .detalle {
     height: 240px;

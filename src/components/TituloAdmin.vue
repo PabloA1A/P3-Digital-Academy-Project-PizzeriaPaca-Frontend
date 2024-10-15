@@ -9,6 +9,12 @@ const router = useRouter();
 const store = useAuthStore();
 const mobileMenuOpen = ref(false);
 
+//obtiene datos del local storage 
+const loggeadoUser= localStorage.getItem('username')
+const IdUserLogged = localStorage.getItem("id");
+
+console.log("valor de user id>>>" + IdUserLogged);
+
 const modificarLogin = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
   else loginChange.setLogin(false);
@@ -19,7 +25,7 @@ const modificarRegister = () => {
   else loginChange.setRegister(false);
 };
 
-function logout() {
+const logout = () => {
   store.user.isAuthenticated = false;
   store.user.id = "";
   store.user.username = "";
@@ -30,9 +36,11 @@ function logout() {
   loginChange.setRegister(false);
   mobileMenuOpen.value = false;
 
-  const redirectPath = "/home";
+  //const redirectPath = "/home";
+  const redirectPath = "/";
+
   router.push(redirectPath);
-}
+};
 
 const openModal = () => {
   if (loginChange.login == false) loginChange.setLogin(true);
@@ -113,11 +121,11 @@ const closeCart = () => {
 
     <div id="containerLogin">
       <div id="login">
-        <h2 class="info">Hola Admin</h2>
+        <h2 class="info">Hola - {{loggeadoUser}}</h2>
       </div>
       <div class="logout">
         <RouterLink to="/"
-          ><img class="icnLogOut" src="../assets/img/navbar/logout.png" alt=""
+          ><img class="icnLogOut" src="../assets/img/navbar/logout.png" alt="" @click="logout"
         /></RouterLink>
       </div>
     </div>
@@ -138,9 +146,11 @@ const closeCart = () => {
   justify-content: center;
   align-items: center;
 }
+
 .info {
   color: white;
 }
+
 #logo {
   display: flex;
   justify-content: center;
@@ -148,12 +158,14 @@ const closeCart = () => {
   width: 40%;
   height: 130px;
 }
+
 .logout {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 20%;
 }
+
 .img {
   width: 130px;
   height: 130px;
@@ -192,6 +204,7 @@ const closeCart = () => {
   height: 50px;
   transition: transform 0.5s ease;
 }
+
 .icnLogOut {
   cursor: pointer;
 }
@@ -220,17 +233,21 @@ const closeCart = () => {
     width: 60%;
     visibility: hidden;
   }
+
   #containerLogin {
     width: 30%;
     margin-right: 20px;
   }
+
   #login {
     width: 70%;
   }
+
   .logout {
     width: 30%;
   }
 }
+
 @media (max-width: 480px) {
   #containerLogoTitulo {
     width: 35%;
@@ -239,17 +256,21 @@ const closeCart = () => {
   #logo {
     width: 35%;
   }
+  
   .img {
     width: 100px;
     height: 100px;
   }
+
   #titulo {
     width: 60%;
     display: none;
   }
+
   #containerLogin {
     width: 40%;
   }
+
   .imgCarrito,
   .user,
   .icnLogOut {
@@ -257,9 +278,11 @@ const closeCart = () => {
     height: 30px;
     transition: transform 0.5s ease;
   }
+
   .info {
     font-size: 15px;
   }
+
   #login {
     width: 70%;
     display: flex;

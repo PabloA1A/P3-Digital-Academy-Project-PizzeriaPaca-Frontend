@@ -1,14 +1,13 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios"; 
+import axios from "axios";
 import MenuCarta from "../MenuCarta.vue";
 import { useCartStore } from "../../stores/cart";
-import TituloLogueado from "../TituloLogueado.vue";
+import Titulo from "../Titulo.vue";
 import NavBar from "../NavBar.vue";
 
 const modalVisible = ref(false);
 const fullDescription = ref("");
-const bebidas = ref([]);
 const cartStore = useCartStore();
 
 const openModal = (description) => {
@@ -22,38 +21,48 @@ const closeModal = () => {
 
 const fetchBebidas = async () => {
   try {
-    const response = await axios.get("http://localhost:8080/api/v1/products/type/BEBIDA", {
-      headers: {
-        'Authorization': 'Basic YWRtaW46cGFzc3dvcmQ=', 
-        'Content-Type': 'application/json' 
+    const response = await axios.get(
+      "http://localhost:8080/api/v1/products/type/BEBIDA",
+      {
+        headers: {
+          Authorization: "Basic YWRtaW46cGFzc3dvcmQ=",
+          "Content-Type": "application/json",
+        },
       }
-    });
-    bebidas.value = response.data; 
+    );
+    bebidas.value = response.data;
   } catch (error) {
-    console.error("Error al cargar las bebidas:", error); 
+    console.error("Error al cargar las bebidas:", error);
   }
 };
 
 onMounted(() => {
-  fetchBebidas(); 
+  fetchBebidas();
 });
 
-const addBebidaToCart = (bebidaName, price) => { 
-  cartStore.addBebida({ name: bebidaName, price }); 
+const addBebidaToCart = (bebidaName, price, id) => {
+  cartStore.addToCart({ name: bebidaName, price, id});
 };
+
+const bebidas = ref([]);
 </script>
 
 <template>
-  <TituloLogueado />
+  <Titulo></Titulo>
   <NavBar />
   <MenuCarta />
   <main>
     <div class="cards-container">
       <div v-for="(bebida, index) in bebidas" :key="bebida.id" class="card">
         <div class="personaje">
-          <div class="imagen_personaje"></div>
+          <div class="imagen_personaje"><img class="imagen_personaje"
+              :src="bebida.image" 
+              :alt="bebida.name"
+            /></div>
           <div class="detalle">
-            <div class="contTitulo"><h2>{{ bebida.name }}</h2></div>
+            <div class="contTitulo">
+              <h2>{{ bebida.name }}</h2>
+            </div>
             <div class="contTexto">
               <p>
                 {{ bebida.description.slice(0, 120) }}
@@ -61,16 +70,18 @@ const addBebidaToCart = (bebidaName, price) => {
               </p>
             </div>
             <div class="contBtn">
-              <div class="btn" @click="openModal(bebida.description)">Leer Más</div> 
+              <div class="btn" @click="openModal(bebida.description)">
+                Leer Más
+              </div>
             </div>
             <div class="containerPrecioCarrito">
-              <div class="contPrecio">{{ bebida.price }}€</div> 
+              <div class="contPrecio">{{ bebida.price }}€</div>
               <div class="contCarrito">
                 <img
                   class="imgCarro"
                   src="../../assets/img/carta/carro.png"
                   alt="Carrito"
-                  @click="addBebidaToCart(bebida.name, bebida.price)" 
+                  @click="addBebidaToCart(bebida.name, bebida.price, bebida.id)"
                 />
               </div>
             </div>
@@ -83,7 +94,7 @@ const addBebidaToCart = (bebidaName, price) => {
       <div class="modal-content" @click.stop>
         <span class="close-modal" @click="closeModal">&times;</span>
         <h2 class="tituloModal">Descripción Completa</h2>
-        <p>{{ fullDescription }}</p>
+        <p class="full-description">{{ fullDescription }}</p>
       </div>
     </div>
   </main>
@@ -102,8 +113,8 @@ main {
   margin-top: 30px;
   margin-bottom: 50px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 40px; 
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
   padding: 20px;
 }
 
@@ -133,7 +144,8 @@ main {
   height: 160px;
   width: 85%;
   margin-top: -20px;
-  background-image: url(../../assets/img/slider/pizza2.png);
+  display: flex;
+  justify-content: center;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -157,15 +169,18 @@ main {
   border: 1px solid rgb(182, 124, 1);
 }
 
+.full-description {
+  font-size: 20px;
+}
+
 .card:hover {
   transform: scale(1.1);
 }
 
 .card:hover .imagen_personaje {
-  transform: translatey(-40px);
+  transform: translatey(-17px);
   transition: 1s;
   filter: none;
-  background-image: url(../../assets/img/slider/pizza2.png);
 }
 
 .card:hover .personaje {
@@ -310,8 +325,11 @@ p {
     height: 390px;
     width: 270px;
   }
+  .full-description{
+    font-size: 10px;
+  }
   .card:hover .imagen_personaje {
-    transform: translatey(-50px);
+    transform: translatey(-17px);
   }
 
   .personaje {
