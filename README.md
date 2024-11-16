@@ -127,8 +127,9 @@ npm run dev
 ```
 
 10. Estructura de Carpetas: 
-P3-Digital-Academy-Project-PizzeriaPaca-Frontend
 
+```bash
+P3-Digital-Academy-Project-PizzeriaPaca-Frontend
 │  ├─ App.vue
 │  ├─ assets
 │  │  ├─ base.css
@@ -225,8 +226,7 @@ P3-Digital-Academy-Project-PizzeriaPaca-Frontend
 │ 	└─ SalesCartView.vue
 ├─ vite.config.js
 └─ vitest.config.jsP3-Digital-Academy-Project-PizzeriaPaca-
-
-
+```
 
 #### Backend
 
